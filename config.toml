@@ -1,0 +1,6 @@
+baseurl = "http://carlossolar.es/"
+languageCode = "es-MX"
+title = "Carlos Solares"
+theme = "nightgum"
+[params]
+  description = "I code hardcore at <a href='http://interglobal.vision/' target='_blank'>Interglobal Vision</a>.<br />You can find me on <a href='https://github.com/mixcas' target='_blank'>Github</a>."
