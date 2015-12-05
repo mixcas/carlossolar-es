@@ -1,0 +1,6 @@
+[submodule "themes/nightgum"]
+	path = themes/nightgum
+	url = git@github.com:mixcas/nightgum.git
+[submodule "public"]
+	path = public
+	url = git@github.com:mixcas/mixcas.github.io.git
