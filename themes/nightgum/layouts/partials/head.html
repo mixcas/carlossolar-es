@@ -1,22 +1,25 @@
-<!doctype html> 
-<html lang="{{ site.Language.Locale }}"> 
-<head>
-  <meta charset="utf-8">
-  <title>{{ .Site.Title }}</title>
-  <meta name="author" content="{{ site.Params.author.name }}">
-  <meta name="description" content="{{ .Site.Params.description }}">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  <!-- Icons -->
-  <link rel="icon" href="/favicon.png" />
-  <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
-  
-  <!-- Style & Font -->
-  <link rel="stylesheet" href="/style.css" />
+<!doctype html>
+<html lang="{{ site.Language.Locale }}">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ .Site.Title }}</title>
+    <meta name="author" content="{{ site.Params.author.name }}" />
+    <meta name="description" content="{{ .Site.Params.description }}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-</head>
-<body>
+    <!-- Icons -->
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
 
-  <header class="section">
-    <h1><a href="/">{{ .Site.Title }}</a></h1>
-  </header>
+    <!-- Style & Font -->
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="section">
+      <h1><a href="/">{{ .Site.Title }}</a></h1>
+      {{ with .Site.Params.description }}
+      <h2>{{ . | safeHTML }}</h2>
+      {{end}}
+    </header>
+  </body>
+</html>
