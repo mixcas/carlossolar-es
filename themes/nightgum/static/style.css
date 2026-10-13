@@ -1,0 +1,104 @@
+/* Styles for Heather - A Hyperminimal Jekyll Theme */
+
+/* BASSCSS Reset - http://jxnblk.github.io/basscss */
+* {
+  box-sizing: border-box;
+}
+body, h1, h2, h3, h4, h5, h6, dl, ol, ul,
+button, input, select, textarea {
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 100%;
+}
+
+article, aside, details, figcaption, figure, footer, header, main, nav, section, summary {
+  display: block;
+}
+
+/* COLORS */
+.yellow {
+  color: #F9DD72;
+}
+
+.blue {
+  color: #26ADFF;
+}
+
+/* Fonts */
+@font-face {
+  font-family: 'Libertine';
+  src: url('fonts/LinLibertine_DR.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* BASE */
+
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: 'Libertine', serif;
+  line-height: 1.45;
+  font-size: 1.4em;
+  margin: 16px;
+}
+
+a {
+  background: #26ADFF;
+  color: #F9DD72;
+  padding: 0.1em;
+  text-decoration: none;
+}
+
+pre {
+  padding-left: 45px;
+  font-size: 0.8em;
+}
+
+time {
+  color: #F9DD72;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.container {
+  max-width: 700px;
+}
+
+/* POST */
+
+.post {
+  margin-bottom: 96px;
+}
+
+/* POSTS */
+
+ul.posts {
+  padding: 0;
+}
+
+.posts li {
+  list-style: none;
+}
+
+.posts time {
+  font-size: 0.6em;
+}
+
+/* SINGLE */
+.single .post > * {
+  max-width: 720px;
+}
+
+.single .post pre {
+  max-width: 1000px;
+  word-break: break-word;
+  background: #fff;
+  color: #000;
+  padding: 15px;
+}

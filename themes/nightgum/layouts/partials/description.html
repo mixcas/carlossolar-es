@@ -1,0 +1,5 @@
+<div class="description section">
+  {{ with .Site.Params.description }}
+  <p>{{ . | safeHTML }}</p>
+  {{end}}
+</div>
