@@ -3,11 +3,12 @@
 Personal site of Carlos Solares — a Hugo static site deployed to GitHub Pages at
 https://carlossolar.es/.
 
-> **Status:** The live site is served from the `public/` submodule
-> (`mixcas/mixcas.github.io`), whose `index.html`, `style.css`, and other assets have been
-> hand-edited since 2016 and do **not** match what Hugo generates from this repo. Running
-> `deploy.sh` (or a bare `hugo`) overwrites those edits with theme output and then, unmodified,
-> aborts: it pushes a branch that does not exist.
+> **Status:** Builds cleanly on Hugo v0.167.0 and deploys to GitHub Pages via the `public/`
+> submodule (`mixcas/mixcas.github.io`). The theme is committed in-repo, and since commit
+> `bd33ab5` the committed output is **reproducible** — a fresh `hugo` build matches `public/`
+> byte-for-byte, so `./deploy.sh` no longer destroys anything. One caveat on fresh clones:
+> `public/` is checked out detached, which makes `deploy.sh` silently push nothing — see
+> [Known issues](#known-issues--gotchas).
 
 ## Stack
 
@@ -52,8 +53,8 @@ Theme files (`themes/nightgum/`):
 | `layouts/404.html` | Not-found page |
 | `layouts/_default/single.html` | Single page template |
 | `layouts/_default/list.html` | List template for `section`, `taxonomy`, and `term` kinds (`tags/`, `categories/`, post sections) |
-| `layouts/partials/head.html` | `<head>`, `<html lang>`, author and description meta tags, stylesheet link |
-| `layouts/partials/description.html` | Renders `[params] description` through `safeHTML` |
+| `layouts/partials/head.html` | `<!doctype>`, `<head>` (lang, title, author + description meta), the `<header>`, and the `<h2>` subtitle rendered from `[params] description` through `safeHTML` |
+| `layouts/partials/description.html` | Hand-written bio paragraphs (Ensenada / Mexico City, Videate, Github, public-CV link); no longer reads config |
 | `layouts/partials/foot.html` | Closing `</footer></body></html>` |
 | `layouts/shortcodes/gist.html` | `{{< gist >}}` shortcode |
 | `layouts/shortcodes/youtube.html` | `{{< youtube >}}` shortcode |
@@ -81,8 +82,8 @@ graph LR
   submodule. Pass `--destination` (or `-d`) to build somewhere else.
 - `themes/nightgum` is now a normal directory in this repo: edit templates and stylesheets here,
   in place. No submodule pointer to bump.
-- The output now committed in `public/` does **not** match this repo's output — see
-  [Known issues](#known-issues--gotchas).
+- The output committed in `public/` now **matches** this repo's build output (verified by a
+  clean `hugo -d` diff against `public/`), so rebuilding and deploying is lossless.
 
 ## Requirements
 
@@ -99,8 +100,8 @@ cd carlossolar-es
 git submodule update --init public    # only needed to build into/publish via public/
 ```
 
-The theme is committed in-repo, so no submodule is required to build — only `public/` is a
-submodule, and it matters for deploying.
+`git submodule update --init public` checks `public/` out **detached** at the recorded commit.
+Before running `deploy.sh`, attach it to the branch: `git -C public switch main`.
 
 ### Installing Hugo
 
@@ -135,9 +136,10 @@ fails with `Unable to locate config file or config directory`. Keep the clone un
   submodule. For a preview that leaves `public/` alone, use
   `hugo server -d /tmp/hugo-preview` or the Docker command above (which also builds in place, so
   prefer `-d` there too if you care about the working tree).
-- Editing the home page means editing `themes/nightgum/layouts/index.html` (markup) and
-  `config.toml` `[params] description` (the text). The live `public/index.html` was instead
-  hand-edited and has diverged; rebuilding replaces it.
+- Editing the home page means editing `themes/nightgum/layouts/index.html` (markup),
+  `themes/nightgum/layouts/partials/head.html` (the `<h2>` subtitle, from
+  `config.toml` `[params] description`), or `themes/nightgum/layouts/partials/description.html`
+  (the bio paragraphs, which are hard-coded there).
 
 ## Build
 
@@ -173,36 +175,44 @@ hugo
 cd public
 git add -A
 git commit -m "rebuilding site $(date)"
-git push origin main        # NOTE: deploy.sh still says `master` — see Known issues
+git push origin HEAD:main   # `main`, NOT `master` — deploy.sh pushes `main`
 cd ..
 ```
 
-> **WARNING:** `hugo` regenerates `public/index.html`, `public/style.css`, and the rest of the
-> built site from the theme, **destroying** the hand-edited home page that the live site currently
-> serves. The unmodified `deploy.sh` also pushes `origin master` inside `public/`, but that repo's
-> default branch is `main` and it has no `master` branch, so the push aborts.
+> **WARNING:** `hugo` builds into `public/` (Hugo's default `publishDir`) and `deploy.sh` then
+> commits and pushes the whole thing to `mixcas/mixcas.github.io`. Because the committed output is
+> now reproducible, this is safe — but it pushes **whatever is in `public/`**, so build from a
+> clean tree. On fresh clones `public/` is detached and the push silently no-ops; see
+> [Known issues](#known-issues--gotchas).
 
 The parent repo must be pushed separately (`git push origin master`) — `deploy.sh` only touches
 the `public` submodule.
 
 ## Known issues & gotchas
 
-1. **`deploy.sh` pushes a non-existent branch.** `git push origin master` inside `public/` fails
-   with `src refspec master does not match any`; the live branch is `main`. Fix: change that line
-   to `git push origin main` (or `git push origin HEAD:main`).
-2. **The committed output no longer matches this repo.** `public/` `main` holds hand-edited
-   output; a rebuild replaces `index.html`, `404.html`, `index.xml`, and `sitemap.xml`, and adds
-   `tags/` + `categories/`. Do not run `deploy.sh` expecting the live page to survive.
-3. **The live page is hand-edited.** `public` `main` contains the Korean subtitle, OG tags, the
-   Ensenada/Mexico City bio, Videate and CV links, and a `.container { max-width: 700px; }` rule.
-   Rebuilding would silently remove all of it.
+1. **`public/` is checked out detached.** `git submodule update --init public` (and any fresh
+   clone) leaves a detached HEAD. `deploy.sh` runs `git push origin main` inside `public/`, which
+   — with no local `main` branch — pushes the *local* `main` ref, not `HEAD`: if that branch is
+   absent the push reports `Everything up-to-date` and **nothing is deployed**, while the local
+   commit is silently discarded. Fix: `git -C public switch main` before deploying, or change the
+   line to `git push origin HEAD:main`.
+2. **`deploy.sh` has no error handling.** No `set -e` and no `git diff --cached` guard: on an
+   unchanged build `git commit` fails with `nothing to commit` (exit 1) but the script continues
+   to push and exits 0, so a failed deploy looks successful.
+3. **The build is reproducible, but only from a clean tree.** `public/` exactly matches
+   `hugo -d <tmpdir>` output as of `bd33ab5`. Stale files in `public/` from an older theme revision
+   would be committed as-is, since `deploy.sh` uses `git add -A` (no `--cleanDestinationDir`).
 4. **`baseurl` uses `http://` and is lowercase.** Lowercase is fine (Hugo lowercases config keys
    internally) but is non-idiomatic; `baseURL` with `https://` is correct for a
-   Cloudflare-fronted HTTPS site.
+   Cloudflare-fronted HTTPS site. The emitted `sitemap.xml`, `index.xml`, and `<loc>` values
+   currently advertise `http://carlossolar.es/`.
 5. **`archetypes/default.md` has no `title`/`date`.** `hugo new content` output would need both
    filled in manually.
 6. **No `content/` directory exists**, so `hugo new content post.md` fails with
    `no existing content directory configured for this project` until `content/` is created.
+7. **`config.toml` `[params] description` is a single string used twice.** In `head.html` it
+   becomes both the `<meta name="description">` and the visible `<h2>` subtitle, escaped in the
+   former and `safeHTML` in the latter. Multi-line HTML there would break the meta tag.
 
 ## Hugo version compatibility
 
@@ -216,6 +226,7 @@ v0.156.0 fails because `site.Language.Locale` does not exist yet).
 | `languageCode` (config) | `config.toml:2` | `locale` | Deprecated v0.158.0 |
 | `.Data.Pages` | `index.html:5` | `site.RegularPages` | Legacy API; also lists only regular pages, not section/taxonomy nodes |
 | date layout | `index.html`, `single.html` | `2006-01-02` / `Jan 02, 2006` | The old `01`/`30` tokens are Go's *month*, producing crooked dates |
+| taxonomy layouts | *(none)* | `_default/list.html` | Without it, `tags/` and `categories/` render nothing and Hugo warns `found no layout file … for kind "taxonomy"` |
 
 `params.author.name` is read from `config.toml`:
 
