@@ -4,17 +4,17 @@ Personal site of Carlos Solares — a Hugo static site deployed to GitHub Pages 
 https://carlossolar.es/.
 
 > **Status:** The live site is served from the `public/` submodule
-> (`mixcas/mixcas.github.io`), whose `index.html` and `style.css` have been hand-edited since
-> 2016 and do **not** match what Hugo generates from this repo. Running the current `deploy.sh`
-> overwrites those edits with theme output and then aborts, because it pushes a branch that does
-> not exist.
+> (`mixcas/mixcas.github.io`), whose `index.html`, `style.css`, and other assets have been
+> hand-edited since 2016 and do **not** match what Hugo generates from this repo. Running
+> `deploy.sh` (or a bare `hugo`) overwrites those edits with theme output and then, unmodified,
+> aborts: it pushes a branch that does not exist.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
 | Static site generator | Hugo (Go), TOML config, no JS toolchain, no package manager |
-| Theme | `nightgum` — local git submodule `mixcas/nightgum`, MIT, derived from the Jekyll theme *Heather* |
+| Theme | `nightgum` — vendored in-repo under `themes/nightgum/`, MIT, derived from the Jekyll theme *Heather* |
 | Content | Markdown with TOML front matter; **currently zero content files** |
 | Styling | One hand-written stylesheet + a self-hosted WOFF font (Linux Libertine) |
 | Build output | `public/` — a git submodule pointing at `mixcas/mixcas.github.io` |
@@ -26,32 +26,38 @@ https://carlossolar.es/.
 
 ```text
 .
+├── .gitignore          # ignores .hugo_build.lock and resources/
+├── .gitmodules         # submodule definition (public only)
 ├── archetypes/
 │   └── default.md      # TOML front matter template used by `hugo new`
-├── config.toml         # site config (baseurl, languageCode, title, theme, [params])
+├── config.toml         # site config (baseurl, locale, title, theme, [params])
 ├── deploy.sh           # build + commit + push the public/ submodule
-├── .gitmodules         # submodule definitions (themes/nightgum, public)
 ├── public/             # SUBMODULE → mixcas/mixcas.github.io (the published site)
 └── themes/
-    └── nightgum/       # SUBMODULE → mixcas/nightgum (layouts + static assets)
+    └── nightgum/       # the theme, tracked directly in this repo
 ```
 
 There is **no `content/` directory** and **no root `layouts/`**; all templates resolve from
 `themes/nightgum/`. `hugo new content …` refuses to run until a `content/` directory exists.
 
+The theme is **not** a submodule: its files are committed here, so `git clone` alone is enough to
+build (no `--recurse-submodules` needed). It was migrated off the removed `.Site.Author` /
+deprecated `.Site.LanguageCode` APIs — see [Hugo version compatibility](#hugo-version-compatibility).
+
 Theme files (`themes/nightgum/`):
 
 | Path | Purpose |
 |---|---|
-| `layouts/index.html` | Home template: `head` + `description` partials, `<main class="home section">`, `{{ range .Data.Pages }}` |
+| `layouts/index.html` | Home template: `head` + `description` partials, `<main class="home section">`, `{{ range site.RegularPages }}` |
 | `layouts/404.html` | Not-found page |
-| `layouts/_default/single.html` | Single page template (unused — no content) |
+| `layouts/_default/single.html` | Single page template |
+| `layouts/_default/list.html` | List template for `section`, `taxonomy`, and `term` kinds (`tags/`, `categories/`, post sections) |
 | `layouts/partials/head.html` | `<head>`, `<html lang>`, author and description meta tags, stylesheet link |
 | `layouts/partials/description.html` | Renders `[params] description` through `safeHTML` |
 | `layouts/partials/foot.html` | Closing `</footer></body></html>` |
 | `layouts/shortcodes/gist.html` | `{{< gist >}}` shortcode |
 | `layouts/shortcodes/youtube.html` | `{{< youtube >}}` shortcode |
-| `static/style.css` | Site stylesheet (100 lines, Heather-derived) |
+| `static/style.css` | Site stylesheet (104 lines, Heather-derived) |
 | `static/fonts/LinLibertine_DR.woff` | Self-hosted Linux Libertine font |
 | `static/favicon.png`, `static/apple-touch-icon.png` | Icons |
 | `theme.toml` | Theme metadata (`min_version = 0.13`, stale) |
@@ -71,38 +77,46 @@ graph LR
 ```
 
 - Hugo writes the built site **directly into the `public/` submodule's working tree**
-  (`publishDir` defaults to `public`), so building mutates a tracked submodule.
-- `themes/nightgum` is a separate repo: changes to templates and static assets belong there
-  (or must be shadowed by a root `layouts/` directory), not in this repo.
-- The submodule is **pinned at theme commit `b5cf0c5`**, but the output currently committed in
-  `public/` was generated from the older `755aaf9` — the two are not in sync.
+  (`publishDir` defaults to `public`), so a plain `hugo` or `hugo server` mutates a tracked
+  submodule. Pass `--destination` (or `-d`) to build somewhere else.
+- `themes/nightgum` is now a normal directory in this repo: edit templates and stylesheets here,
+  in place. No submodule pointer to bump.
+- The output now committed in `public/` does **not** match this repo's output — see
+  [Known issues](#known-issues--gotchas).
 
 ## Requirements
 
-- **Hugo v0.155.3** — the newest release the pinned theme builds with (see
-  [Hugo version compatibility](#hugo-version-compatibility)). Do **not** use
-  `brew install hugo` (installs 0.167.0, which fails the build).
-- Git, with SSH access to `mixcas/carlossolar-es`, `mixcas/nightgum`, and
-  `mixcas/mixcas.github.io`.
-- Docker, if using the container route (recommended; matches the setup this project was verified
-  against).
+- **Hugo v0.158.0 or newer** (`site.Language.Locale` and the `locale` config key require it).
+  Verified working with the current `brew` release, **v0.167.0**.
+- Git, with SSH access to `mixcas/carlossolar-es` and `mixcas/mixcas.github.io`.
+- Docker, if using the container route (optional).
 
 ## Getting started
 
 ```bash
-git clone --recurse-submodules git@github.com:mixcas/carlossolar-es.git
+git clone git@github.com:mixcas/carlossolar-es.git
 cd carlossolar-es
-# already cloned without --recurse-submodules?
-git submodule update --init --recursive
+git submodule update --init public    # only needed to build into/publish via public/
 ```
 
-### Hugo v0.155.3
+The theme is committed in-repo, so no submodule is required to build — only `public/` is a
+submodule, and it matters for deploying.
 
-Docker (preferred):
+### Installing Hugo
+
+`brew install hugo` installs the current release (0.167.0 as of writing), which builds this
+theme cleanly:
+
+```bash
+brew install hugo
+hugo version   # expect: hugo v0.167.0+extended ... darwin/arm64
+```
+
+Docker (any supported version, no local install):
 
 ```bash
 docker run --rm -it -v "$PWD":/project -p 1313:1313 \
-  ghcr.io/gohugoio/hugo:v0.155.3 server --bind 0.0.0.0
+  ghcr.io/gohugoio/hugo:v0.167.0 server --bind 0.0.0.0
 ```
 
 The image's working directory is `/project`, it runs as uid 1000, and `--bind 0.0.0.0` is what
@@ -112,47 +126,38 @@ On macOS, Docker Desktop only shares some host paths by default. Mounting an uns
 (e.g. under `/private/tmp`) succeeds but appears **empty** inside the container, and Hugo then
 fails with `Unable to locate config file or config directory`. Keep the clone under `$HOME`.
 
-macOS installer, from the v0.155.3 release assets:
-
-```bash
-curl -LO https://github.com/gohugoio/hugo/releases/download/v0.155.3/hugo_extended_0.155.3_darwin-universal.pkg
-sudo installer -pkg hugo_extended_0.155.3_darwin-universal.pkg -target /
-hugo version   # expect: hugo v0.155.3+extended ...
-```
-
-(`hugo_0.155.3_darwin-universal.pkg` works too if the extended binary is not needed.)
-
 ## Develop
 
 - `hugo server` → http://localhost:1313/ (defaults: port 1313, bind 127.0.0.1). Add
   `-D`/`--buildDrafts` to include drafts, `--disableFastRender` for exact rebuilds. Live reload
   works. A `content/` directory must exist first if new pages are to be authored.
-- Preview inside Docker with the exact command from [Hugo v0.155.3](#hugo-v01553).
-- Editing the home page means editing either `themes/nightgum/layouts/index.html` +
-  `config.toml` `[params] description` (theme/config route, regenerated output), **or**
-  `public/index.html` directly (the route actually used since 2016). The two have diverged and
-  rebuilding takes the first route.
+- **`hugo`/`hugo server` write into `public/` by default** (see [Build](#build)), dirtying the
+  submodule. For a preview that leaves `public/` alone, use
+  `hugo server -d /tmp/hugo-preview` or the Docker command above (which also builds in place, so
+  prefer `-d` there too if you care about the working tree).
+- Editing the home page means editing `themes/nightgum/layouts/index.html` (markup) and
+  `config.toml` `[params] description` (the text). The live `public/index.html` was instead
+  hand-edited and has diverged; rebuilding replaces it.
 
 ## Build
 
 ```bash
 hugo            # writes to ./public (Hugo's default publishDir)
 hugo --minify   # optional
+hugo -d /tmp/out   # build elsewhere, leaving public/ untouched
 ```
 
-There are **no `content/` files**, so with Hugo v0.155.3 the build reports `Pages 6` and emits:
-the home page, `404.html`, `sitemap.xml`, `index.xml` (RSS), empty `tags/index.html` and
-`categories/index.html` taxonomy list pages, plus a copy of `themes/nightgum/static/*`
-(`style.css`, `favicon.png`, `apple-touch-icon.png`, `fonts/LinLibertine_DR.woff`). It also logs:
+There are **no `content/` files**, so the build reports `Pages 8` and emits: the home page,
+`404.html`, `sitemap.xml`, `index.xml` (RSS), and empty `tags/index.html` +
+`categories/index.html` taxonomy list pages (each also gets an `index.xml`), plus a copy of
+`themes/nightgum/static/*` (`style.css`, `favicon.png`, `apple-touch-icon.png`,
+`fonts/LinLibertine_DR.woff`). The build is clean — no warnings or deprecations.
 
-```text
-WARN  found no layout file for "html" for kind "taxonomy": ...
-```
+With content added, `_default/list.html` and `_default/single.html` render sections, taxonomy
+terms, and individual posts.
 
-That warning is expected: the theme ships no taxonomy list template and there is no content to
-list. Disable the taxonomies in `config.toml` or add the template in the theme to silence it.
-
-`.hugo_build.lock` is created in the project root during builds and is safe to delete.
+`.hugo_build.lock` is created in the project root during builds and is git-ignored; it is safe to
+delete.
 
 ## Deploy
 
@@ -172,12 +177,10 @@ git push origin main        # NOTE: deploy.sh still says `master` — see Known 
 cd ..
 ```
 
-> **WARNING:** `hugo` regenerates `public/index.html` and `public/style.css` from the theme,
-> **destroying** the hand-edited home page and stylesheet that the live site currently serves.
-> The unmodified `deploy.sh` runs whatever `hugo` is on `PATH`; with Hugo ≥ 0.156 the build fails
-> before it reaches the push (`.Site.Author` was removed). `deploy.sh` then pushes
-> `origin master` inside `public/`, but that repo's default branch is `main` and it has no
-> `master` branch, so the push aborts.
+> **WARNING:** `hugo` regenerates `public/index.html`, `public/style.css`, and the rest of the
+> built site from the theme, **destroying** the hand-edited home page that the live site currently
+> serves. The unmodified `deploy.sh` also pushes `origin master` inside `public/`, but that repo's
+> default branch is `main` and it has no `master` branch, so the push aborts.
 
 The parent repo must be pushed separately (`git push origin master`) — `deploy.sh` only touches
 the `public` submodule.
@@ -187,53 +190,42 @@ the `public` submodule.
 1. **`deploy.sh` pushes a non-existent branch.** `git push origin master` inside `public/` fails
    with `src refspec master does not match any`; the live branch is `main`. Fix: change that line
    to `git push origin main` (or `git push origin HEAD:main`).
-2. **The committed output no longer matches the theme.** `public/` was generated from theme
-   `755aaf9` while the submodule is pinned at `b5cf0c5`; `public/style.css` (101 lines) and
-   `themes/nightgum/static/style.css` (100 lines) differ — the committed copy has `.home*`
-   selectors and `.red`/`.yellow` rules, the theme copy has `.section`, `time`, and `ul.posts`.
+2. **The committed output no longer matches this repo.** `public/` `main` holds hand-edited
+   output; a rebuild replaces `index.html`, `404.html`, `index.xml`, and `sitemap.xml`, and adds
+   `tags/` + `categories/`. Do not run `deploy.sh` expecting the live page to survive.
 3. **The live page is hand-edited.** `public` `main` contains the Korean subtitle, OG tags, the
-   Ensenada/Mexico City bio, Videate and CV links, and a `.container { max-width: 700px; }` CSS
-   rule that no template or stylesheet in this repo produces. Rebuilding would silently remove
-   all of it.
-4. **Hugo ≥ 0.156 cannot build this theme.** `.Site.Author` was removed
-   (`themes/nightgum/layouts/partials/head.html:6`). Pin 0.155.3, or migrate (see next section).
-5. **`baseurl` uses `http://` and is lowercase.** Lowercase is fine (Hugo lowercases config keys
+   Ensenada/Mexico City bio, Videate and CV links, and a `.container { max-width: 700px; }` rule.
+   Rebuilding would silently remove all of it.
+4. **`baseurl` uses `http://` and is lowercase.** Lowercase is fine (Hugo lowercases config keys
    internally) but is non-idiomatic; `baseURL` with `https://` is correct for a
    Cloudflare-fronted HTTPS site.
-6. **`archetypes/default.md` has no `title`/`date`.** `hugo new content` output would need both
+5. **`archetypes/default.md` has no `title`/`date`.** `hugo new content` output would need both
    filled in manually.
-7. **No `content/` directory exists**, so `hugo new content post.md` fails with
+6. **No `content/` directory exists**, so `hugo new content post.md` fails with
    `no existing content directory configured for this project` until `content/` is created.
 
 ## Hugo version compatibility
 
-| API / key | Location | Status vs modern Hugo | Replacement |
+The theme was migrated for Hugo v0.158.0+; minimum supported version is **v0.158.0** (verified —
+v0.156.0 fails because `site.Language.Locale` does not exist yet).
+
+| API / key | Before | Now (in this repo) | Why |
 |---|---|---|---|
-| `.Site.Author` | `themes/nightgum/layouts/partials/head.html:6` | **Removed in v0.156.0** | `site.Params.author.name` |
-| `.Site.LanguageCode` | `themes/nightgum/layouts/partials/head.html:2` | Deprecated in v0.158.0; WARN, build error after ~15 minors | `.Site.Language.Locale` |
-| `languageCode` (config) | `config.toml:2` | Deprecated in v0.158.0 | `locale` |
-| `.Data.Pages` | `themes/nightgum/layouts/index.html:5` | Legacy; still functional | `site.RegularPages` or `Pages` |
-| `theme.toml` | `themes/nightgum/theme.toml` | Still read for theme metadata; `min_version = 0.13` is meaningless now | — |
+| `.Site.Author` | `head.html:6` | `site.Params.author.name` | Removed in Hugo v0.156.0 (hard build error) |
+| `.Site.LanguageCode` | `head.html:2` | `site.Language.Locale` | Deprecated v0.158.0, removed later |
+| `languageCode` (config) | `config.toml:2` | `locale` | Deprecated v0.158.0 |
+| `.Data.Pages` | `index.html:5` | `site.RegularPages` | Legacy API; also lists only regular pages, not section/taxonomy nodes |
+| date layout | `index.html`, `single.html` | `2006-01-02` / `Jan 02, 2006` | The old `01`/`30` tokens are Go's *month*, producing crooked dates |
 
-Last known-good Hugo: **v0.155.3** (with this config, `Site.Author()` returns an empty map and
-emits no deprecation log, so the build is clean). Current `brew` formula is 0.167.0, which fails
-the build.
+`params.author.name` is read from `config.toml`:
 
-Migrating to current Hugo — **the fixes live in the theme repo**:
-
-```bash
-# inside themes/nightgum (or the mixcas/nightgum clone), edit layouts/partials/head.html:
-#   {{ .Site.LanguageCode }}       → {{ .Site.Language.Locale }}
-#   {{ .Site.Author.name }}        → {{ site.Params.author.name }}
-# and config.toml:
-#   languageCode = "es-MX"         → locale = "es-MX"
-# and themes/nightgum/layouts/index.html:
-#   {{ range .Data.Pages }}        → {{ range site.RegularPages }}
+```toml
+[params]
+  author.name = "Carlos Solares"
 ```
 
-Because `head.html` lives in the submodule, either the change must be committed to
-`mixcas/nightgum` and this repo's submodule pointer bumped, or the file must be shadowed by an
-identical copy under a root `layouts/partials/head.html`.
+Because the templates are committed in this repo, upgrading Hugo only requires editing
+`themes/nightgum/layouts/*` here — no submodule bump, no separate theme repo.
 
 ## License
 
