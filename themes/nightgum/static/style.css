@@ -4,33 +4,58 @@
 * {
   box-sizing: border-box;
 }
-body, h1, h2, h3, h4, h5, h6, dl, ol, ul,
-button, input, select, textarea {
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+dl,
+ol,
+ul,
+button,
+input,
+select,
+textarea {
   margin: 0;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: 100%;
 }
 
-article, aside, details, figcaption, figure, footer, header, main, nav, section, summary {
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+main,
+nav,
+section,
+summary {
   display: block;
 }
 
 /* COLORS */
-.yellow {
-  color: #F9DD72;
-}
-
-.blue {
-  color: #26ADFF;
+:root {
+  --color-yellow: #f9dd72;
+  --color-blue: #26adff;
+  --color-black: #060404;
+  --color-white: #ffffff;
+  --color-orange: #ff8c00;
 }
 
 /* Fonts */
 @font-face {
-  font-family: 'Libertine';
-  src: url('fonts/LinLibertine_DR.woff') format('woff');
+  font-family: "Libertine";
+  src: url("fonts/LinLibertine_DR.woff") format("woff");
   font-weight: normal;
   font-style: normal;
 }
@@ -38,18 +63,15 @@ article, aside, details, figcaption, figure, footer, header, main, nav, section,
 /* BASE */
 
 body {
-  background-color: #000;
-  color: #fff;
-  font-family: 'Libertine', serif;
+  background-color: var(--color-black);
+  color: var(--color-white);
+  font-family: "Libertine", serif;
   line-height: 1.45;
   font-size: 1.4em;
   margin: 16px;
 }
 
 a {
-  background: #26ADFF;
-  color: #F9DD72;
-  padding: 0.1em;
   text-decoration: none;
 }
 
@@ -59,7 +81,7 @@ pre {
 }
 
 time {
-  color: #F9DD72;
+  color: var(--color-yellow);
 }
 
 .section {
@@ -68,6 +90,19 @@ time {
 
 .container {
   max-width: 700px;
+}
+/* HEADER */
+
+h1 a {
+  background: var(--color-orange);
+  color: var(--color-yellow);
+  padding: 0.1em;
+}
+
+.content a {
+  background: var(--color-blue);
+  color: var(--color-yellow);
+  padding: 0.1em;
 }
 
 /* POST */
@@ -98,7 +133,7 @@ ul.posts {
 .single .post pre {
   max-width: 1000px;
   word-break: break-word;
-  background: #fff;
-  color: #000;
+  background: var(--color-white);
+  color: var(--color-black);
   padding: 15px;
 }
